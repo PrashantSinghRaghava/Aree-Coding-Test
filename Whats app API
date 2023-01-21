@@ -1,0 +1,58 @@
+Schema Design:
+One possible schema design for storing WhatsApp group messages in a SQL database would be to have two main tables: "groups" and "messages".
+The "groups" table would contain information about the group, such as its name and a list of its members.
+The "messages" table would contain information about each message, such as the text of the message, the sender, and the timestamp.
+The "messages" table would also have a foreign key referencing the group that the message belongs to.
+groups
++-------------+-------------+
+|    name     |   members   |
++-------------+-------------+
+| Group 1     | user1,user2 |
++-------------+-------------+
+
+messages
++-----------------+------------+-------------+-------------+
+|      text       |  sender    | timestamp   | group_id    |
++-----------------+------------+-------------+-------------+
+| Hello World     | user1      | 1617449600  | 1           |
++-----------------+------------+-------------+-------------+
+
+Server-side application:
+A simple server-side application using NodeJS and Express that implements the two API endpoints can be:
+const express = require('express');
+const app = express();
+
+// Connect to the database
+const db = require('./db');
+
+// Load all the group messages in a paginated manner
+app.get('/messages', (req, res) => {
+  const groupId = req.query.groupId;
+  const page = req.query.page || 1;
+  const limit = req.query.limit || 10;
+  db.query('SELECT * FROM messages WHERE group_id = ? LIMIT ?, ?', [groupId, (page - 1) * limit, limit], (err, messages) => {
+    if (err) {
+      res.status(500).send(err);
+    } else {
+      res.json(messages);
+    }
+  });
+});
+
+// Create a message in the group
+app.post('/messages', (req, res) => {
+  const groupId = req.body.groupId;
+  const sender = req.body.sender;
+  const text = req.body.text;
+  db.query('INSERT INTO messages (group_id, sender, text) VALUES (?, ?, ?)', [groupId, sender, text], (err) => {
+    if (err) {
+      res.status(500).send(err);
+    } else {
+      res.send('Message created successfully.');
+    }
+  });
+});
+
+app.listen(3000, () => {
+  console.log('Server listening on port 3000');
+});
